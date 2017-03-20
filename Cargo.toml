@@ -1,0 +1,20 @@
+[package]
+name = "fenix"
+version = "0.1.0"
+authors = ["José Miguel Sánchez García <jmi2k@openmailbox.org>"]
+
+[dependencies]
+rlibc = "1.0"
+
+[dependencies.multiboot2]
+git = "https://github.com/jmi2k/multiboot2-elf64"
+branch = "wip"
+
+[lib]
+crate-type = ["staticlib"]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
