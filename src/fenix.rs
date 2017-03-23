@@ -1,56 +1,34 @@
-#![feature(asm, lang_items, naked_functions)]
+#![feature(lang_items, naked_functions)]
 #![no_std]
+
+// Fenix kernel
+//
+// NOTES:
+//  - .::macros::log : Improve implementation.
 
 extern crate rlibc;
 extern crate multiboot2;
 
 #[macro_use]
 mod macros;
-mod io;
-mod settings;
+mod arch;
 
-extern { static bss: u8; }
-
-fn main(s: &settings::Settings) {
-    log!("bootloader: {:?}", s.bootloader);
-    log!("cmdline:    {:?}", s.cmdline);
+fn kmain(settings: &arch::Settings) {
+    log!("cmdline: {:?}", settings.cmdline);
 }
 
 #[naked]
 #[no_mangle]
 pub unsafe fn start() -> ! {
-    let magic: u32;
-    let addr: usize;
+    let settings = arch::start();
 
-    asm!("\
-        mov %eax, $0
-        mov %ebx, $1"
-        : "=r"(magic), "=r"(addr)
-        :: "eax", "ebx");
-
-    asm!("mov $0, %esp"
-        :: "r"(&bss as *const _)
-        : "esp");
-
-    assert_eq!(magic, 0x36d76289);
-
-    let info = multiboot2::load(addr);
-
-    main(&settings::Settings {
-        bootloader: info.boot_loader_name_tag()
-            .unwrap()
-            .name(),
-        cmdline: info.command_line_tag()
-            .unwrap()
-            .command_line()
-    });
-
+    kmain(&settings);
     panic!("`main` returned!");
 }
 
 #[lang = "panic_fmt"]
 #[no_mangle]
-pub extern fn rust_begin_panic(fmt: core::fmt::Arguments,
+pub extern fn panic(fmt: core::fmt::Arguments,
         file: &'static str, line: u32) -> ! {
     log!("Fenix panicked at file: {}, line: {}; and flew away...", file,
         line);

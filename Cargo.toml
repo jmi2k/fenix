@@ -5,10 +5,13 @@ authors = ["José Miguel Sánchez García <jmi2k@openmailbox.org>"]
 
 [dependencies]
 rlibc = "1.0"
+multiboot2 = "0.3"
 
-[dependencies.multiboot2]
-git = "https://github.com/jmi2k/multiboot2-elf64"
-branch = "wip"
+[dependencies.common]
+path = "./common"
+
+[target.'cfg(target_arch = "x86")'.dependencies.arch_i686]
+path = "./arch/i686"
 
 [lib]
 crate-type = ["staticlib"]
