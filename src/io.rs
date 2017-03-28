@@ -1,5 +1,4 @@
 use core::marker::PhantomData;
-use common::Io;
 
 #[derive(Debug)]
 pub struct Port<T> {
@@ -7,9 +6,16 @@ pub struct Port<T> {
     phantom: PhantomData<T>
 }
 
+pub trait Io {
+    type Value;
+
+    fn read(&self) -> Self::Value;
+    fn write(&mut self, val: Self::Value);
+}
+
 impl<T> Port<T> {
-    pub const fn new(port: u16) -> Port<T> {
-        Port {
+    pub const fn new(port: u16) -> Self {
+        Self {
             port: port,
             phantom: PhantomData
         }

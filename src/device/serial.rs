@@ -1,9 +1,8 @@
 use core::fmt::{Write, Result};
-use io::Port;
-use common::Io;
+use io::{Port, Io};
+use spin::Mutex;
 
-pub static mut COM1: Serial = Serial::new(0x3f8);
-pub static mut COM2: Serial = Serial::new(0x3e8);
+pub static COM1: Mutex<Serial> = Mutex::new(Serial::new(0x3f8));
 
 bitflags! {
     pub flags Lsr: u8 {
@@ -26,8 +25,8 @@ pub struct Serial {
 }
 
 impl Serial {
-    const fn new(base: u16) -> Serial {
-        Serial {
+    const fn new(base: u16) -> Self {
+        Self {
             data: Port::new(base),
             int_enable: Port::new(base + 1),
             fifo_ctrl: Port::new(base + 2),

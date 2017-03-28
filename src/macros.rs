@@ -2,6 +2,12 @@
 macro_rules! log {
     ($($arg:tt)*) => {{
         use core::fmt::Write;
-        arch::stdout().map(|out| writeln!(out, $($arg)*));
+        let _ = write!(::output::STDOUT.lock(), $($arg)*);
     }}
+}
+
+macro_rules! logln {
+    () => (write!("\n"));
+    ($fmt:expr) => (log!(concat!($fmt, "\n")));
+    ($fmt:expr, $($arg:tt)*) => (log!(concat!($fmt, "\n"), $($arg)*))
 }

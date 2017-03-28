@@ -1,6 +1,0 @@
-[package]
-name = "common"
-version = "0.1.0"
-authors = ["José Miguel Sánchez García <jmi2k@openmailbox.org>"]
-
-[dependencies]

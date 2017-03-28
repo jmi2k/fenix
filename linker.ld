@@ -15,7 +15,16 @@ SECTIONS {
         LONG(header_end - header_start)  /* Header length */
         LONG(checksum)                   /* Checksum */
 
+        /* Framebuffer tag */
+        SHORT(5)
+        SHORT(0)
+        LONG(20)
+        LONG(320)  /* Width */
+        LONG(200)  /* Height */
+        LONG(24)   /* Depth */
+
         /* End tag */
+        . = ALIGN(8);
         SHORT(0)
         SHORT(0)
         LONG(8)
@@ -23,14 +32,21 @@ SECTIONS {
         header_end = .;
     }
 
-    .text : {
-        *(.text)
+    .bss : ALIGN(4K) {
+        . += 4K;
+        bss = .;
     }
 
-    .bss : {
-        /* We reserve 8 KiB of memory for the stack */
-        . += 8K;
-        bss = .;
+    .text : {
+        *(.text .text.*)
+    }
+
+    .rodata : {
+        *(.rodata .rodata.*)
+    }
+
+    .data : {
+        *(.data .data.*)
     }
 
     /DISCARD/ : {}

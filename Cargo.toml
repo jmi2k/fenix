@@ -4,14 +4,13 @@ version = "0.1.0"
 authors = ["José Miguel Sánchez García <jmi2k@openmailbox.org>"]
 
 [dependencies]
+bitflags = "0.8"
 rlibc = "1.0"
-multiboot2 = "0.3"
+spin = "0.4"
 
-[dependencies.common]
-path = "./common"
-
-[target.'cfg(target_arch = "x86")'.dependencies.arch_i686]
-path = "./arch/i686"
+[dependencies.multiboot2]
+path = "../multiboot2-elf64"
+features = ["elf32"]
 
 [lib]
 crate-type = ["staticlib"]

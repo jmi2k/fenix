@@ -7,9 +7,9 @@ qemu: iso
 	qemu-system-i386 -cdrom out/boot.iso
 
 iso: kernel
-	rm -r build/iso/
+	rm -rf build/iso/
 	cp -r iso/ build/iso/
-	cp out/kernel.bin build/iso/boot/
+	cp out/kernel build/iso/boot/
 	grub-mkrescue -o out/boot.iso build/iso/
 	cp build/boot.iso out/
 
@@ -21,9 +21,9 @@ kernel: dirs
 		--gc-sections \
 		-m elf_i386 \
 		-T linker.ld \
-		-o build/kernel.bin \
+		-o build/kernel \
 		target/$(TARGET)/release/libfenix.a
-	cp build/kernel.bin out/
+	cp build/kernel out/
 
 dirs:
 	mkdir -p build/ out/
