@@ -3,6 +3,7 @@ use io::{Port, Io};
 use spin::Mutex;
 
 pub static COM1: Mutex<Serial> = Mutex::new(Serial::new(0x3f8));
+pub static COM2: Mutex<Serial> = Mutex::new(Serial::new(0x2f8));
 
 bitflags! {
     pub flags Lsr: u8 {

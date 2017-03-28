@@ -38,8 +38,6 @@ pub unsafe fn start() -> ! {
 
     assert_eq!(magic, 0x36d76289);
 
-    output::STDOUT.lock().enable_listchars = true;
-
     let info = multiboot2::load(addr);
     let memory_map_tag = info.memory_map_tag()
         .expect("Memory map tag not found");
