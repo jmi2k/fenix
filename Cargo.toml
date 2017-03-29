@@ -9,7 +9,7 @@ rlibc = "1.0"
 spin = "0.4"
 
 [dependencies.multiboot2]
-path = "../multiboot2-elf64"
+git = "https://github.com/phil-opp/multiboot2-elf64"
 features = ["elf32"]
 
 [lib]
