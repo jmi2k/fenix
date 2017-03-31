@@ -1,5 +1,5 @@
 use core::fmt::{Write, Result};
-use io::{Port, Io};
+use io::{ReadOnly, Port, Io};
 use spin::Mutex;
 
 pub static COM1: Mutex<Serial> = Mutex::new(Serial::new(0x3f8));
@@ -19,10 +19,8 @@ pub struct Serial {
     fifo_ctrl: Port<u8>,
     line_ctrl: Port<u8>,
     modem_ctrl: Port<u8>,
-
-    // NOTE: These are read-only.
-    line_status: Port<u8>,
-    modem_status: Port<u8>
+    line_status: ReadOnly<Port<u8>>,
+    modem_status: ReadOnly<Port<u8>>
 }
 
 impl Serial {
@@ -33,19 +31,9 @@ impl Serial {
             fifo_ctrl: Port::new(base + 2),
             line_ctrl: Port::new(base + 3),
             modem_ctrl: Port::new(base + 4),
-            line_status: Port::new(base + 5),
-            modem_status: Port::new(base + 6)
+            line_status: ReadOnly::new(Port::new(base + 5)),
+            modem_status: ReadOnly::new(Port::new(base + 6))
         }
-    }
-
-    pub fn init(&mut self) {
-        self.int_enable.write(0);
-        self.line_ctrl.write(0x80);
-        self.data.write(0x03);
-        self.int_enable.write(0x00);
-        self.line_ctrl.write(0x03);
-        self.fifo_ctrl.write(0xc7);
-        self.modem_ctrl.write(0x0b);
     }
 
     pub fn write(&mut self, byte: u8) {
@@ -60,10 +48,7 @@ impl Serial {
 
 impl Write for Serial {
     fn write_str(&mut self, s: &str) -> Result {
-        for byte in s.bytes() {
-            self.write(byte)
-        }
-
+        for byte in s.bytes() { self.write(byte) }
         Ok(())
     }
 }

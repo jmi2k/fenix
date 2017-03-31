@@ -3,6 +3,7 @@
 
 #[macro_use]
 extern crate bitflags;
+
 extern crate multiboot2;
 extern crate rlibc;
 extern crate spin;
@@ -14,7 +15,7 @@ mod output;
 mod io;
 
 #[allow(improper_ctypes)]
-extern { static bss: (); }
+extern { static stack: (); }
 
 fn kmain(cmdline: &'static str) {
     logln!("cmdline: {:?}", cmdline);
@@ -22,46 +23,36 @@ fn kmain(cmdline: &'static str) {
 
 #[naked]
 #[no_mangle]
-pub unsafe fn start() -> ! {
+pub fn start() -> ! {
     let magic: u32;
     let addr: usize;
 
-    asm!("\
-        mov %eax, $0
-        mov %ebx, $1"
-        : "=r"(magic), "=r"(addr)
-        :: "eax", "ebx");
+    unsafe {
+        asm!("\
+            mov %eax, $0
+            mov %ebx, $1"
+            : "=r"(magic), "=r"(addr)
+            :: "eax", "ebx");
 
-    asm!("mov $0, %esp"
-        :: "r"(&bss as *const _)
-        : "esp");
+        asm!("mov $0, %esp"
+            :: "r"(&stack as *const _)
+            : "esp");
+    }
 
-    assert_eq!(magic, 0x36d76289);
+    if magic != 0x36d76289 { panic!("Multiboot data not found") }
 
-    let info = multiboot2::load(addr);
-    let memory_map_tag = info.memory_map_tag()
-        .expect("Memory map tag not found");
-    let kernel_sections_tag = info.elf_sections_tag()
-        .expect("ELF sections tag not found");
+    let info = unsafe { multiboot2::load(addr) };
+    let memory_map = info.memory_map_tag()
+        .expect("Memory map tag not found")
+        .memory_areas();
+    let kernel_sections = info.elf_sections_tag()
+        .expect("ELF sections tag not found")
+        .sections();
     let cmdline = info.command_line_tag()
         .map_or("", |tag| tag.command_line());
-    let string_table = kernel_sections_tag.string_table();
-
-    logln!("memory_map:");
-    for area in memory_map_tag.memory_areas() {
-        logln!("    addr: 0x{:08x}, length: 0x{:08x}",
-               area.base_addr, area.length);
-    }
-
-    logln!("kernel_sections:");
-    for section in kernel_sections_tag.sections() {
-        logln!("    {}:", string_table.section_name(section));
-        logln!("        addr: 0x{:08x}", section.addr);
-        logln!("        size: {}", section.size);
-    }
 
     kmain(cmdline);
-    panic!("`main` returned");
+    panic!("`kmain` returned");
 }
 
 #[lang = "panic_fmt"]

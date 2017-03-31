@@ -15,14 +15,6 @@ SECTIONS {
         LONG(header_end - header_start)  /* Header length */
         LONG(checksum)                   /* Checksum */
 
-        /* Framebuffer tag */
-        SHORT(5)
-        SHORT(0)
-        LONG(20)
-        LONG(320)  /* Width */
-        LONG(200)  /* Height */
-        LONG(24)   /* Depth */
-
         /* End tag */
         . = ALIGN(8);
         SHORT(0)
@@ -34,7 +26,7 @@ SECTIONS {
 
     .bss : ALIGN(4K) {
         . += 4K;
-        bss = .;
+        stack = .;
     }
 
     .text : {
