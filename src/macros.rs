@@ -7,7 +7,7 @@ macro_rules! log {
 }
 
 macro_rules! logln {
-    () => (write!("\n"));
+    () => (log!("\n"));
     ($fmt:expr) => (log!(concat!($fmt, "\n")));
     ($fmt:expr, $($arg:tt)*) => (log!(concat!($fmt, "\n"), $($arg)*))
 }

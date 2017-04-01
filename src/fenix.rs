@@ -10,59 +10,75 @@ extern crate spin;
 
 #[macro_use]
 mod macros;
+
 mod device;
-mod output;
 mod io;
+mod output;
 
 #[allow(improper_ctypes)]
 extern { static stack: (); }
 
-fn kmain(cmdline: &'static str) {
-    logln!("cmdline: {:?}", cmdline);
+static mut MULTIBOOT_INFO: Option<&multiboot2::BootInformation> = None;
+
+fn kmain() {
+    logln!("cmdline: {:?}", cmdline());
 }
 
 #[naked]
 #[no_mangle]
-pub fn start() -> ! {
+pub unsafe fn start() -> ! {
     let magic: u32;
     let addr: usize;
 
-    unsafe {
-        asm!("\
-            mov %eax, $0
-            mov %ebx, $1"
-            : "=r"(magic), "=r"(addr)
-            :: "eax", "ebx");
+    asm!("\
+        mov %eax, $0
+        mov %ebx, $1"
+        : "=r"(magic), "=r"(addr)
+        :: "eax", "ebx");
 
-        asm!("mov $0, %esp"
-            :: "r"(&stack as *const _)
-            : "esp");
-    }
+    asm!("mov $0, %esp"
+        :: "r"(&stack as *const _)
+        : "esp");
 
-    if magic != 0x36d76289 { panic!("Multiboot data not found") }
+    if magic != 0x36d76289 { panic!("multiboot info not found") }
+    MULTIBOOT_INFO = Some(multiboot2::load(addr));
 
-    let info = unsafe { multiboot2::load(addr) };
-    let memory_map = info.memory_map_tag()
-        .expect("Memory map tag not found")
-        .memory_areas();
-    let kernel_sections = info.elf_sections_tag()
-        .expect("ELF sections tag not found")
-        .sections();
-    let cmdline = info.command_line_tag()
-        .map_or("", |tag| tag.command_line());
-
-    kmain(cmdline);
+    kmain();
     panic!("`kmain` returned");
+}
+
+fn memory_map() -> multiboot2::MemoryAreaIter {
+    unsafe {
+        MULTIBOOT_INFO.unwrap()
+            .memory_map_tag()
+            .expect("memory map tag not found")
+            .memory_areas()
+    }
+}
+
+fn kernel_sections() -> multiboot2::ElfSectionIter {
+    unsafe {
+        MULTIBOOT_INFO.unwrap()
+            .elf_sections_tag()
+            .expect("kernel sections tag not found")
+            .sections()
+    }
+}
+
+fn cmdline() -> &'static str {
+    unsafe {
+        MULTIBOOT_INFO.unwrap()
+            .command_line_tag()
+            .map_or("", |tag| tag.command_line())
+    }
 }
 
 #[lang = "panic_fmt"]
 #[no_mangle]
-pub extern fn panic(fmt: core::fmt::Arguments,
+extern fn panic(fmt: core::fmt::Arguments,
         file: &'static str, line: u32) -> ! {
-    logln!("Fenix panicked at file: {}, line: {}; and flew away...", file,
-           line);
-    logln!("... but he left a message before leaving:");
-    logln!("");
+    logln!("| Fenix panicked at {}:{} |", file, line);
+    logln!();
     logln!("{}", fmt);
 
     loop {}
