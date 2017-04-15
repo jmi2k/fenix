@@ -2,6 +2,7 @@
 name = "fenix"
 version = "0.1.0"
 authors = ["José Miguel Sánchez García <jmi2k@openmailbox.org>"]
+license = "MIT"
 
 [dependencies]
 bitflags = "0.8"
