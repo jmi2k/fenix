@@ -7,21 +7,24 @@ pub struct Port<T> {
 }
 
 #[derive(Debug)]
-pub struct ReadOnly<T> where T: Io {
-    pub inner: T
-}
+pub struct ReadOnly<T> where T: Io { inner: T }
 
 #[derive(Debug)]
-pub struct WriteOnly<T> where T: Io {
-    pub inner: T
-}
+pub struct WriteOnly<T> where T: Io { inner: T }
 
-pub trait Io {
+pub trait Input {
     type Value;
 
-    fn read(&self) -> Self::Value;
+    fn read(&mut self) -> Self::Value;
+}
+
+pub trait Output {
+    type Value;
+
     fn write(&mut self, val: Self::Value);
 }
+
+pub trait Io: Input + Output {}
 
 impl<T> Port<T> {
     pub const fn new(port: u16) -> Self {
@@ -32,25 +35,29 @@ impl<T> Port<T> {
     }
 }
 
-impl Io for Port<u8> {
+impl Input for Port<u8> {
     type Value = u8;
 
-    fn read(&self) -> Self::Value {
+    fn read(&mut self) -> Self::Value {
         let val: Self::Value;
 
         unsafe {
             asm!("inb %dx, %al"
-                : "={al}"(val)
-                : "{dx}"(self.port));
+                    : "={al}"(val)
+                    : "{dx}"(self.port));
         }
 
         val
     }
+}
+
+impl Output for Port<u8> {
+    type Value = u8;
 
     fn write(&mut self, val: Self::Value) {
         unsafe {
             asm!("outb %al, %dx"
-                :: "{al}"(val), "{dx}"(self.port));
+                    :: "{al}"(val), "{dx}"(self.port))
         }
     }
 }
@@ -59,18 +66,22 @@ impl<T> ReadOnly<T> where T: Io {
     pub const fn new(inner: T) -> Self {
         Self { inner: inner }
     }
+}
 
-    pub fn read(&self) -> T::Value {
+impl<T> Input for ReadOnly<T> where T: Io {
+    type Value = <T as Input>::Value;
+
+    fn read(&mut self) -> <T as Input>::Value {
         self.inner.read()
     }
 }
 
-impl<T> WriteOnly<T> where T: Io {
-    pub const fn new(inner: T) -> Self {
-        Self { inner: inner }
-    }
+impl<T> Output for WriteOnly<T> where T: Io {
+    type Value = <T as Output>::Value;
 
-    pub fn write(&mut self, val: T::Value) {
+    fn write(&mut self, val: <T as Output>::Value) {
         self.inner.write(val)
     }
 }
+
+impl<T> Io for T where T: Input + Output {}

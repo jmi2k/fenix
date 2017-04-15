@@ -1,85 +1,53 @@
-#![feature(asm, const_fn, lang_items, naked_functions)]
+#![feature(abi_x86_interrupt, asm, const_fn, lang_items, naked_functions)]
 #![no_std]
 
 #[macro_use]
 extern crate bitflags;
 
-extern crate multiboot2;
+extern crate bit;
 extern crate rlibc;
 extern crate spin;
 
 #[macro_use]
-mod macros;
+mod log;
+
+#[macro_use]
+mod interrupt;
 
 mod device;
+mod dtable;
 mod io;
-mod output;
 
 #[allow(improper_ctypes)]
+#[allow(dead_code)]
 extern { static stack: (); }
 
-static mut MULTIBOOT_INFO: Option<&multiboot2::BootInformation> = None;
-
-fn kmain() {
-    logln!("cmdline: {:?}", cmdline());
+fn kmain() -> ! {
+    info!("Reached `kmain`...");
+    loop {}
 }
 
 #[naked]
 #[no_mangle]
 pub unsafe fn start() -> ! {
-    let magic: u32;
-    let addr: usize;
-
-    asm!("\
-        mov %eax, $0
-        mov %ebx, $1"
-        : "=r"(magic), "=r"(addr)
-        :: "eax", "ebx");
-
     asm!("mov $0, %esp"
-        :: "r"(&stack as *const _)
-        : "esp");
+            :: "r"(&stack));
 
-    if magic != 0x36d76289 { panic!("multiboot info not found") }
-    MULTIBOOT_INFO = Some(multiboot2::load(addr));
+    device::serial::init();
+    interrupt::init();
 
     kmain();
-    panic!("`kmain` returned");
-}
-
-fn memory_map() -> multiboot2::MemoryAreaIter {
-    unsafe {
-        MULTIBOOT_INFO.unwrap()
-            .memory_map_tag()
-            .expect("memory map tag not found")
-            .memory_areas()
-    }
-}
-
-fn kernel_sections() -> multiboot2::ElfSectionIter {
-    unsafe {
-        MULTIBOOT_INFO.unwrap()
-            .elf_sections_tag()
-            .expect("kernel sections tag not found")
-            .sections()
-    }
-}
-
-fn cmdline() -> &'static str {
-    unsafe {
-        MULTIBOOT_INFO.unwrap()
-            .command_line_tag()
-            .map_or("", |tag| tag.command_line())
-    }
 }
 
 #[lang = "panic_fmt"]
 #[no_mangle]
-extern fn panic(fmt: core::fmt::Arguments,
+pub extern fn panic(fmt: core::fmt::Arguments,
         file: &'static str, line: u32) -> ! {
-    logln!("| Fenix panicked at {}:{} |", file, line);
-    logln!();
-    logln!("{}", fmt);
+    let level = log::Level::Panic;
+
+    log!(level, "| Fenix panicked at {}:{} |", file, line);
+    log!(level);
+    log!(level, "{}", fmt);
 
     loop {}
 }

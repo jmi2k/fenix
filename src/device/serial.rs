@@ -1,5 +1,5 @@
-use core::fmt::{Write, Result};
-use io::{ReadOnly, Port, Io};
+use core::fmt::{Result, Write};
+use io::{Input, Output, Port, ReadOnly};
 use spin::Mutex;
 
 pub static COM1: Mutex<Serial> = Mutex::new(Serial::new(0x3f8));
@@ -8,7 +8,7 @@ pub static COM2: Mutex<Serial> = Mutex::new(Serial::new(0x2f8));
 bitflags! {
     pub flags Lsr: u8 {
         const INPUT_EMPTY = 1,
-        const OUTPUT_EMPTY = 1 << 5
+        const OUTPUT_EMPTY = 0b100000
     }
 }
 
@@ -36,12 +36,22 @@ impl Serial {
         }
     }
 
-    pub fn write(&mut self, byte: u8) {
-        while ! self.line_status().contains(OUTPUT_EMPTY) {}
-        self.data.write(byte);
+    pub fn init(&mut self) {
+        self.int_enable.write(0);
+        self.line_ctrl.write(0x80);
+        self.data.write(3);
+        self.int_enable.write(0);
+        self.line_ctrl.write(3);
+        self.fifo_ctrl.write(0xc7);
+        self.modem_ctrl.write(0xb)
     }
 
-    pub fn line_status(&self) -> Lsr {
+    pub fn write(&mut self, byte: u8) {
+        while ! self.line_status().contains(OUTPUT_EMPTY) {}
+        self.data.write(byte)
+    }
+
+    pub fn line_status(&mut self) -> Lsr {
         Lsr::from_bits_truncate(self.line_status.read())
     }
 }
@@ -51,4 +61,9 @@ impl Write for Serial {
         for byte in s.bytes() { self.write(byte) }
         Ok(())
     }
+}
+
+pub fn init() {
+    COM1.lock().init();
+    COM2.lock().init()
 }

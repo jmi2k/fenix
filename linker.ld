@@ -27,17 +27,19 @@ SECTIONS {
     .bss : ALIGN(4K) {
         . += 4K;
         stack = .;
+
+        *(.bss .bss.*)
     }
 
-    .text : {
+    .text : ALIGN(4K) {
         *(.text .text.*)
     }
 
-    .rodata : {
+    .rodata : ALIGN(4K) {
         *(.rodata .rodata.*)
     }
 
-    .data : {
+    .data : ALIGN(4K) {
         *(.data .data.*)
     }
 
